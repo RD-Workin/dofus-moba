@@ -1,6 +1,6 @@
 // Hors ligne : la page et le moteur sont gardés sur le téléphone après le premier chargement complet.
-// package_mobile.py remplace ce838aaf91 (empreinte du contenu) : une nouvelle version vide l'ancien cache.
-const CACHE = 'kolizeum-ce838aaf91';
+// package_mobile.py remplace 420744b41c (empreinte du contenu) : une nouvelle version vide l'ancien cache.
+const CACHE = 'kolizeum-420744b41c';
 const ASSETS = ["./", "manifest.webmanifest", "g0.46fcf831.wasm", "g1.67dba631.wasm", "g2.4de7489e.wasm", "g3.8e7887e5.wasm", "game.audio.position.worklet.js", "game.audio.worklet.js", "game.js", "p0.416df814.wasm", "p1.e815cc37.wasm", "p2.c399b10a.wasm", "p3.be0c501c.wasm", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"];
 
 const HASHED = f => /^[gp]\d+\.[0-9a-f]{8}\.wasm$/.test(f);
@@ -21,7 +21,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.endsWith('/version.json')) return;
   // La page passe d'abord par le réseau : chaque lancement en ligne prend la dernière version publiée.
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req, { cache: 'no-cache' })

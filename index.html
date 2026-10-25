@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr"><head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-dZ4+xp7B4J11l30yk4sEH79gA0aHHlb7LDY6eHVLKSc=' 'sha256-uN4NaiDXReknz0g13bOUOmZy+bFjmyRS08eTX2MGbQ0=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-dZ4+xp7B4J11l30yk4sEH79gA0aHHlb7LDY6eHVLKSc=' 'sha256-LDIG8Q+Xo314yn65z1r6xM5HfgCtdJXt++M3lkhvlVc=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -166,9 +166,40 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
   addEventListener('resize', check); check();
 })();
 </script>
-
+<div id="maj" hidden><span>Nouvelle version disponible</span><button type="button">Mettre à jour</button><button type="button" aria-label="Plus tard">✕</button></div>
+<style>
+#maj { position: fixed; z-index: 10; top: max(8px, env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 99px; white-space: nowrap;
+  background: #3a2f22; border: 1px solid #5a4a36; color: var(--ink); font-size: .9rem; box-shadow: 0 4px 16px #0008; }
+#maj[hidden] { display: none; }
+#maj button { font: inherit; color: var(--ink); background: none; border: 0; padding: 6px 10px; border-radius: 99px; }
+#maj button:first-of-type { background: var(--accent); color: #1d1710; font-weight: 600; }
+</style>
 <script>
-// À chaque lancement : on demande tout de suite s'il existe une nouvelle version (sinon iOS peut attendre longtemps).
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
+// Mise à jour : la page connaît sa version, et va voir de temps en temps celle publiée (version.json, jamais en cache).
+// Si elles diffèrent, un bandeau propose de recharger ; le joueur choisit le moment (pas en pleine partie).
+(() => {
+  const VERSION = '420744b41c';
+  const bar = document.getElementById('maj'), [go, later] = bar.querySelectorAll('button');
+  let reg = null, dismissed = null;
+  if ('serviceWorker' in navigator)
+    navigator.serviceWorker.register('sw.js').then(r => { reg = r; r.update(); }).catch(() => {});
+  const check = async () => {
+    try {
+      const r = await fetch('version.json', { cache: 'no-store' });
+      const v = (await r.json()).version;
+      if (v && v !== VERSION && v !== dismissed) bar.hidden = false;
+    } catch (e) {}   // hors ligne : on réessaiera
+  };
+  go.onclick = async () => {
+    go.textContent = 'Mise à jour…';
+    try { if (reg) await reg.update(); } catch (e) {}
+    location.reload();
+  };
+  later.onclick = () => { bar.hidden = true; fetch('version.json', { cache: 'no-store' }).then(r => r.json()).then(j => dismissed = j.version).catch(() => {}); };
+  setTimeout(check, 5000);
+  setInterval(check, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+})();
 </script>
 </body></html>
