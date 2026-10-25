@@ -101,11 +101,11 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
   let vp = document.querySelector('meta[name="viewport"]');
   if (!vp) { vp = document.createElement('meta'); vp.name = 'viewport'; document.head.appendChild(vp); }
   vp.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
-  const WASM_PARTS = ["g0.wasm", "g1.wasm", "g2.wasm", "g3.wasm"];
+  const WASM_PARTS = ["g0.46fcf831.wasm", "g1.67dba631.wasm", "g2.4de7489e.wasm", "g3.8e7887e5.wasm"];
   const WASM_SIZE = 43699190;
-  const PCK_SIZE = 37058896;
-  const PCK_PARTS = ["p0.wasm", "p1.wasm", "p2.wasm"];
-  const DL_SIZE = 44759178;
+  const PCK_SIZE = 35513008;
+  const PCK_PARTS = ["p0.cdbc46b4.wasm", "p1.83b660cc.wasm", "p2.48d59cdc.wasm"];
+  const DL_SIZE = 43190715;
   const realFetch = window.fetch.bind(window);
   const fill = document.getElementById('fill'), msg = document.getElementById('msg');
   const mo = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace('.', ',');
@@ -165,6 +165,7 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
 })();
 </script>
 <script>
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// À chaque lancement : on demande tout de suite s'il existe une nouvelle version (sinon iOS peut attendre longtemps).
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
 </script>
 </body></html>
