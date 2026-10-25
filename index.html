@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr"><head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-ciCab9prLJbFoIUTgXRvBPIqpm7CDdiEoPtg5mqRZEs=' 'sha256-uN4NaiDXReknz0g13bOUOmZy+bFjmyRS08eTX2MGbQ0=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-dZ4+xp7B4J11l30yk4sEH79gA0aHHlb7LDY6eHVLKSc=' 'sha256-uN4NaiDXReknz0g13bOUOmZy+bFjmyRS08eTX2MGbQ0=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -105,9 +105,9 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
   vp.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
   const WASM_PARTS = ["g0.46fcf831.wasm", "g1.67dba631.wasm", "g2.4de7489e.wasm", "g3.8e7887e5.wasm"];
   const WASM_SIZE = 43699190;
-  const PCK_SIZE = 39087664;
-  const PCK_PARTS = ["p0.1cc13642.wasm", "p1.e815cc37.wasm", "p2.c399b10a.wasm", "p3.79548fbe.wasm"];
-  const DL_SIZE = 46540372;
+  const PCK_SIZE = 39087520;
+  const PCK_PARTS = ["p0.416df814.wasm", "p1.e815cc37.wasm", "p2.c399b10a.wasm", "p3.be0c501c.wasm"];
+  const DL_SIZE = 46540244;
   const realFetch = window.fetch.bind(window);
   const fill = document.getElementById('fill'), msg = document.getElementById('msg');
   const mo = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace('.', ',');
