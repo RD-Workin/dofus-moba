@@ -1,0 +1,33 @@
+# Godot : cache d'import et réglages d'export (export_credentials.cfg contient les mots de passe de signature)
+.godot/
+*.import.tmp
+export_credentials.cfg
+# Exports du jeu : ils vont sur la branche gh-pages, jamais sur main
+build/
+*.pck
+*.wasm
+*.apk
+*.aab
+*.ipa
+
+# Secrets et configuration locale (serveur multijoueur compris)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+id_rsa*
+id_ed25519*
+secrets/
+config.local.*
+
+# Python, Node, systèmes
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
