@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="fr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dofus MOBA">
+<meta name="theme-color" content="#1d1710">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>Dofus MOBA</title>
+<style>
+:root { --bg: #1d1710; --ink: #f3e9d6; --accent: #e8913a; --muted: #b9a888; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; font-family: system-ui, sans-serif; touch-action: none; -webkit-user-select: none; user-select: none; }
+#canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; outline: none; }
+#load { position: fixed; inset: 0; display: grid; place-content: center; gap: 14px; text-align: center; background: var(--bg); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#load h1 { margin: 0; font-size: 1.5rem; letter-spacing: .02em; }
+#bar { width: min(320px, 70vw); height: 10px; border-radius: 99px; background: #3a2f22; overflow: hidden; margin: 0 auto; }
+#fill { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+#msg { color: var(--muted); font-size: .95rem; max-width: 34ch; }
+#rotate { position: fixed; inset: 0; display: none; place-content: center; text-align: center; gap: 10px; background: var(--bg); padding: 24px; font-size: 1.1rem; }
+#perf { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+#perf button { font: inherit; font-size: .85rem; color: var(--ink); background: #3a2f22; border: 1px solid #5a4a36; border-radius: 99px; padding: 6px 12px; }
+#perf button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #1d1710; }
+#perfhint { color: var(--muted); font-size: .8rem; }
+@media (orientation: portrait) and (max-width: 900px) { #rotate.on { display: grid; } }
+</style>
+</head><body>
+<canvas id="canvas" tabindex="0"></canvas>
+<div id="load"><h1>Kolizéum d'essai</h1><div id="bar"><div id="fill"></div></div><div id="msg">Chargement du jeu…</div><div id="perf" aria-label="Mode d’affichage"></div><div id="perfhint">« Économie » fait moins chauffer le téléphone.</div></div>
+<div id="rotate" class="on"><strong>Tourne ton téléphone</strong><span style="color:var(--muted)">Le jeu se joue en mode paysage.</span></div>
+<script>
+// Économie d'énergie (évite que le téléphone chauffe). Deux leviers, réglables sans recompiler le jeu :
+// - résolution : sur iPhone le navigateur annonce 3 pixels par point, le jeu dessinait 2532 × 1170 pixels
+//   (9 fois plus que l'écran « logique »). On plafonne le côté long du rendu.
+// - images par seconde : plafond (écrans 90/120 Hz ramenés à 60, ou 30 en mode économie).
+// Le jeu (Godot) peut changer le mode via JavaScriptBridge.eval("kolizeumPerf.set('eco')").
+(() => {
+  const MODES = {
+    eco:     { fps: 30, longSide: 1100, label: 'Économie' },
+    normal:  { fps: 60, longSide: 1400, label: 'Équilibré' },
+    qualite: { fps: 60, longSide: 9999, label: 'Qualité max' },
+  };
+  const realDpr = window.devicePixelRatio || 1;
+  let mode = 'normal';
+  try { mode = localStorage.getItem('kolizeum.perf') || mode; } catch (e) {}
+  const q = new URLSearchParams(location.search).get('perf');
+  if (q) mode = q;
+  if (!MODES[mode]) mode = 'normal';
+  const cfg = () => MODES[mode];
+  Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => {
+    const css = Math.max(innerWidth, innerHeight) || 1;
+    return Math.max(1, Math.min(realDpr, cfg().longSide / css));
+  } });
+  // Une seule pompe : les rappels demandés pendant une image sautée attendent tous la prochaine image permise.
+  const raf = window.requestAnimationFrame.bind(window);
+  let queue = [], pumping = false, last = 0, frames = 0;
+  const pump = ts => {
+    if (ts - last < 1000 / cfg().fps - 2) return raf(pump);
+    last = ts; frames++;
+    const q = queue; queue = []; pumping = false;
+    for (const cb of q) cb(ts);
+  };
+  window.requestAnimationFrame = cb => {
+    queue.push(cb);
+    if (!pumping) { pumping = true; raf(pump); }
+    return 0;
+  };
+  window.kolizeumPerf = {
+    modes: MODES,
+    get: () => mode,
+    frames: () => frames,
+    set: m => {
+      if (!MODES[m]) return;
+      mode = m;
+      try { localStorage.setItem('kolizeum.perf', m); } catch (e) {}
+      dispatchEvent(new Event('resize'));   // le moteur recalcule la taille du rendu
+      document.querySelectorAll('#perf button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m));
+    },
+  };
+  addEventListener('DOMContentLoaded', () => {
+    const box = document.getElementById('perf');
+    if (!box) return;
+    for (const k in MODES) {
+      const b = document.createElement('button');
+      b.dataset.m = k; b.textContent = MODES[k].label; b.setAttribute('aria-pressed', k === mode);
+      b.onclick = () => window.kolizeumPerf.set(k);
+      box.appendChild(b);
+    }
+  });
+})();
+</script>
+<script src="game.js"></script>
+<script>
+(() => {
+  // Sans viewport « device-width », le navigateur mobile met la page à l'échelle et les touchers arrivent décalés
+  // dans le jeu (les boutons à droite, comme la croix de la boutique, ne répondent plus). On l'impose, sans zoom.
+  let vp = document.querySelector('meta[name="viewport"]');
+  if (!vp) { vp = document.createElement('meta'); vp.name = 'viewport'; document.head.appendChild(vp); }
+  vp.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+  const WASM_PARTS = ["g0.wasm", "g1.wasm", "g2.wasm", "g3.wasm"];
+  const WASM_SIZE = 43699190;
+  const PCK_SIZE = 37058896;
+  const PCK_PARTS = ["p0.wasm", "p1.wasm", "p2.wasm"];
+  const DL_SIZE = 44759178;
+  const realFetch = window.fetch.bind(window);
+  const fill = document.getElementById('fill'), msg = document.getElementById('msg');
+  const mo = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace('.', ',');
+  let loaded = 0;
+  const show = () => {
+    fill.style.width = Math.min(100, Math.round(loaded / DL_SIZE * 100)) + '%';
+    msg.textContent = `Chargement du jeu : ${mo(loaded)} / ${mo(DL_SIZE)} Mo`;
+  };
+  // Un morceau (compressé en gzip) : progression réelle octet par octet, et nouvel essai si la connexion coupe.
+  const part = async name => {
+    for (let i = 0; ; i++) {
+      let got = 0;
+      try {
+        const r = await realFetch(name);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const reader = r.body.getReader(), chunks = [];
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value); got += value.length; loaded += value.length; show();
+        }
+        return new Response(new Blob(chunks).stream().pipeThrough(new DecompressionStream('gzip'))).blob();
+      } catch (e) {
+        loaded -= got; show();
+        if (i >= 5) throw e;
+        msg.textContent = 'Connexion lente, nouvel essai…';
+        await new Promise(res => setTimeout(res, 1500 * 2 ** i));
+      }
+    }
+  };
+  const joined = async (names, type) => new Response(new Blob(await Promise.all(names.map(part)), { type }), { headers: { 'Content-Type': type } });
+  // Le moteur est découpé en morceaux pour respecter la taille maximale des fichiers publiés.
+  window.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input.url;
+    if (url.endsWith('game.wasm')) return joined(WASM_PARTS, 'application/wasm');
+    if (url.endsWith('game.pck')) return joined(PCK_PARTS, 'application/octet-stream');
+    return realFetch(input, init);
+  };
+  if (typeof DecompressionStream === 'undefined') msg.textContent = 'Navigateur trop ancien : mets à jour iOS (16.4 ou plus) ou Safari.';
+  else show();
+  const engine = new Engine({
+    executable: 'game',
+    mainPack: 'game.pck',
+    canvas: document.getElementById('canvas'),
+    canvasResizePolicy: 2,
+    fileSizes: { 'game.wasm': WASM_SIZE, 'game.pck': PCK_SIZE },
+    focusCanvas: true,
+  });
+  engine.startGame().then(() => {
+    document.getElementById('load').style.display = 'none';
+  }).catch(err => {
+    msg.textContent = 'Le jeu n’a pas pu démarrer : ' + (err && err.message ? err.message : err);
+  });
+  const rot = document.getElementById('rotate');
+  const check = () => rot.classList.toggle('on', innerHeight > innerWidth && innerWidth < 900);
+  addEventListener('resize', check); check();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body></html>
