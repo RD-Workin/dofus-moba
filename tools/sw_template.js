@@ -3,11 +3,13 @@
 const CACHE = 'kolizeum-__VERSION__';
 const ASSETS = __ASSETS__;
 
-// Au premier lancement la page télécharge le jeu avant que ce script ne soit actif : on reprend les mêmes fichiers
-// depuis le cache du navigateur (« force-cache ») pour ne pas tout retélécharger.
+const HASHED = f => /^[gp]\d+\.[0-9a-f]{8}\.wasm$/.test(f);
+
+// Les morceaux du jeu portent l'empreinte de leur contenu : on les reprend du cache du navigateur (la page vient de
+// les télécharger) ; les autres fichiers sont revérifiés auprès du serveur pour ne jamais garder une ancienne copie.
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE)
-    .then(c => c.addAll(ASSETS.map(f => new Request(f, { cache: 'force-cache' }))))
+    .then(c => c.addAll(ASSETS.map(f => new Request(f, { cache: HASHED(f) ? 'force-cache' : 'no-cache' }))))
     .then(() => self.skipWaiting()));
 });
 
@@ -20,7 +22,14 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
-  const key = req.mode === 'navigate' ? './' : req;
+  // La page passe d'abord par le réseau : chaque lancement en ligne prend la dernière version publiée.
+  if (req.mode === 'navigate') {
+    e.respondWith(fetch(req, { cache: 'no-cache' })
+      .catch(() => caches.open(CACHE).then(c => c.match('./')))
+      .then(res => res || Response.error()));
+    return;
+  }
+  const key = req;
   e.respondWith(caches.open(CACHE).then(async c => {
     const hit = await c.match(key, { ignoreSearch: true });
     if (hit) return hit;
