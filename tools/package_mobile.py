@@ -1,7 +1,7 @@
 """Turns the published web version (output of package_web.py) into an app installable from the iPhone home screen
 (PWA): icon, full screen, offline cache. Usage: python3 package_mobile.py <pub> <out> [icon.png]
 <out> is what gets pushed to the GitHub Pages repo (its root)."""
-import sys, os, shutil, json, hashlib
+import sys, os, shutil, json, hashlib, base64, re
 from PIL import Image
 
 src, dst = sys.argv[1], sys.argv[2]
@@ -67,6 +67,18 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 '''
 page = page.replace("<title>Kolizéum d'essai</title>", f'<title>{NAME}</title>').replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')
 page = page.replace('<canvas id="canvas"', '</head><body>\n<canvas id="canvas"', 1)
-open(f'{dst}/index.html', 'w', encoding='utf8').write(head + page + '\n' + reg + '</body></html>\n')
+html = head + page + '\n' + reg + '</body></html>\n'
+# Sécurité : GitHub Pages ne permet pas d'en-têtes HTTP, la politique passe donc par une balise meta.
+# Seuls les scripts du site (et les scripts en ligne de cette page, par leur empreinte) peuvent tourner, et la page
+# ne peut contacter que son propre site. 'unsafe-eval' : JavaScriptBridge.eval du jeu ; 'wasm-unsafe-eval' : le moteur.
+# Le multijoueur devra ajouter l'adresse wss:// de son serveur à connect-src.
+hashes = ' '.join("'sha256-%s'" % base64.b64encode(hashlib.sha256(s.encode()).digest()).decode()
+                  for s in re.findall(r'<script>(.*?)</script>', html, re.S))
+csp = (f"default-src 'self'; script-src 'self' {hashes} 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
+       "img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; "
+       "object-src 'none'; base-uri 'none'; form-action 'none'")
+html = html.replace('<meta charset="utf-8">\n', f'<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="{csp}">\n'
+                    '<meta name="referrer" content="no-referrer">\n', 1)
+open(f'{dst}/index.html', 'w', encoding='utf8').write(html)
 open(f'{dst}/.nojekyll', 'w').close()
 print('version', version, '-', len(assets), 'files cached')
