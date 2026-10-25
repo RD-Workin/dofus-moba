@@ -13,9 +13,19 @@ for f in os.listdir(dst):
     if f not in ('.git', 'README.md', '.nojekyll'):
         p = os.path.join(dst, f)
         shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
-files = [f for f in sorted(os.listdir(src)) if f != 'index.html']
-for f in files:
-    shutil.copy(os.path.join(src, f), dst)
+page = open(f'{src}/index.html', encoding='utf8').read()
+# Game parts get their content hash in the name (g0.wasm -> g0.1a2b3c4d.wasm): a new version can never be mixed
+# with a stale copy from a cache, and unchanged parts (often the engine) are not downloaded again.
+files = []
+for f in sorted(os.listdir(src)):
+    if f == 'index.html':
+        continue
+    out = f
+    if re.fullmatch(r'[gp]\d+\.wasm', f):
+        out = f'{f[:-5]}.{hashlib.sha256(open(os.path.join(src, f), "rb").read()).hexdigest()[:8]}.wasm'
+        page = page.replace(f'"{f}"', f'"{out}"')
+    shutil.copy(os.path.join(src, f), os.path.join(dst, out))
+    files.append(out)
 
 # Icons: full-bleed square (iOS rounds the corners itself).
 os.makedirs(f'{dst}/icons')
@@ -36,8 +46,7 @@ json.dump({
 # Cache name changes with the content, so a new version replaces the old one on next launch.
 h = hashlib.sha256()
 for f in files:
-    h.update(open(os.path.join(src, f), 'rb').read())
-page = open(f'{src}/index.html', encoding='utf8').read()
+    h.update(open(os.path.join(dst, f), 'rb').read())
 h.update(page.encode())
 version = h.hexdigest()[:10]
 assets = ['./', 'manifest.webmanifest'] + files + icons
@@ -62,7 +71,8 @@ head = f'''<!doctype html>
 <link rel="icon" href="icons/icon-192.png">
 '''
 reg = '''<script>
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// À chaque lancement : on demande tout de suite s'il existe une nouvelle version (sinon iOS peut attendre longtemps).
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
 </script>
 '''
 page = page.replace("<title>Kolizéum d'essai</title>", f'<title>{NAME}</title>').replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')
