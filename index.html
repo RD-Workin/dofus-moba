@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr"><head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-Ei+fjLzkKs7SOEJw++5KBKyKcpy5sGNrcwzzYmjcErg=' 'sha256-BIMdQFdkAPrFnvzdinyJilghU55Wfd3I1oOocpCItec=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-hANgJCddiFU1bbYSwuaojKvC/kFn1k+Jwd+ofSp89eM=' 'sha256-XI1ZGk5xhV3Tw8KMnA5tdPd4CMhjQSHnANJ/AQEYA1c=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -108,9 +108,9 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
   vp.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
   const WASM_PARTS = ["g0.46fcf831.wasm", "g1.67dba631.wasm", "g2.4de7489e.wasm", "g3.8e7887e5.wasm"];
   const WASM_SIZE = 43699190;
-  const PCK_SIZE = 42250992;
-  const PCK_PARTS = ["p0.8581c6f4.wasm", "p1.7216138c.wasm", "p2.a6fde681.wasm", "p3.9dfd7ee6.wasm"];
-  const DL_SIZE = 49684299;
+  const PCK_SIZE = 42251024;
+  const PCK_PARTS = ["p0.4134b069.wasm", "p1.7216138c.wasm", "p2.a6fde681.wasm", "p3.28c70e63.wasm"];
+  const DL_SIZE = 49684324;
   const realFetch = window.fetch.bind(window);
   const fill = document.getElementById('fill'), msg = document.getElementById('msg');
   const mo = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace('.', ',');
@@ -220,7 +220,7 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
 // Mise à jour : la page connaît sa version, et va voir de temps en temps celle publiée (version.json, jamais en cache).
 // Si elles diffèrent, un bandeau propose de recharger ; le joueur choisit le moment (pas en pleine partie).
 (() => {
-  const VERSION = '1c99535f26';
+  const VERSION = 'e158e15351';
   const bar = document.getElementById('maj'), [go, later] = bar.querySelectorAll('button');
   let reg = null, dismissed = null;
   if ('serviceWorker' in navigator)
