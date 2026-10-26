@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr"><head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-WBznaDPp1fDWif6DOExsX/R6UdZTkb8cBo05rc5tfWA=' 'sha256-y2MtEahrsAnx7rj3430HdXLBdXUn4DTsJKvOmkUYKJA=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-DhQbCPeEH1hVVmgEdOvxM2UpJx99zX2rqFd8xuZ2Ld8=' 'sha256-5QgEmblFM7i+OWEt7iQuA+uQ9cK/eMBF2BviRmmpF2A=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -28,11 +28,14 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
 #perf button { font: inherit; font-size: .85rem; color: var(--ink); background: #3a2f22; border: 1px solid #5a4a36; border-radius: 99px; padding: 6px 12px; }
 #perf button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #1d1710; }
 #perfhint { color: var(--muted); font-size: .8rem; }
+#crash { display: none; position: fixed; z-index: 5; left: 50%; transform: translateX(-50%); bottom: max(12px, env(safe-area-inset-bottom, 0px)); width: min(46ch, calc(100vw - 32px)); box-sizing: border-box; box-shadow: 0 4px 16px rgba(0,0,0,.4); padding: 10px 12px; border-radius: 10px; background: #3a2f22; color: var(--ink); font-size: .85rem; text-align: left; }
+#crash button { font: inherit; margin: 8px 8px 0 0; color: #1d1710; background: var(--accent); border: 0; border-radius: 99px; padding: 6px 12px; }
 @media (orientation: portrait) and (max-width: 900px) { #rotate.on { display: grid; } }
 </style>
 </head><body>
 <canvas id="canvas" tabindex="0"></canvas>
 <div id="load"><h1>Kolizéum d'essai</h1><div id="bar"><div id="fill"></div></div><div id="msg">Chargement du jeu…</div><div id="perf" aria-label="Mode d’affichage"></div><div id="perfhint">« Économie » fait moins chauffer le téléphone.</div></div>
+<div id="crash"></div>
 <div id="rotate" class="on"><strong>Tourne ton téléphone</strong><span style="color:var(--muted)">Le jeu se joue en mode paysage.</span></div>
 <script>
 // Économie d'énergie (évite que le téléphone chauffe). Deux leviers, réglables sans recompiler le jeu :
@@ -105,9 +108,9 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
   vp.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
   const WASM_PARTS = ["g0.46fcf831.wasm", "g1.67dba631.wasm", "g2.4de7489e.wasm", "g3.8e7887e5.wasm"];
   const WASM_SIZE = 43699190;
-  const PCK_SIZE = 44184976;
-  const PCK_PARTS = ["p0.ed289547.wasm", "p1.1c5c7573.wasm", "p2.a509fcfd.wasm", "p3.6e15a2ff.wasm"];
-  const DL_SIZE = 51421851;
+  const PCK_SIZE = 44683632;
+  const PCK_PARTS = ["p0.b0fe6ce5.wasm", "p1.24e8f381.wasm", "p2.b9dd9e02.wasm", "p3.c6a78646.wasm"];
+  const DL_SIZE = 52000967;
   const realFetch = window.fetch.bind(window);
   const fill = document.getElementById('fill'), msg = document.getElementById('msg');
   const mo = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace('.', ',');
@@ -161,6 +164,43 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
   }).catch(err => {
     msg.textContent = 'Le jeu n’a pas pu démarrer : ' + (err && err.message ? err.message : err);
   });
+  // Journal de bord : si la page est relancée en pleine partie (iPhone à court de mémoire), on le dit au retour
+  // avec la durée tenue, la mémoire du moteur et les dernières erreurs, pour comprendre sans Mac ni câble.
+  const LOG = 'kolizeum.journal';
+  let prev = null;
+  try { prev = JSON.parse(localStorage.getItem(LOG) || 'null'); } catch (e) {}
+  const j = { debut: Date.now(), vu: Date.now(), moteurMo: 0, maxMo: 0, mode: window.kolizeumPerf ? kolizeumPerf.get() : '', erreurs: [], fin: '' };
+  const save = () => { try { localStorage.setItem(LOG, JSON.stringify(j)); } catch (e) {} };
+  const note = m => { j.erreurs.push(new Date().toISOString().slice(11, 19) + ' ' + String(m).slice(0, 200)); j.erreurs = j.erreurs.slice(-8); save(); };
+  addEventListener('error', e => note(e.message || e));
+  addEventListener('unhandledrejection', e => note('promesse : ' + (e.reason && e.reason.message || e.reason)));
+  const cerr = console.error.bind(console);
+  console.error = (...a) => { note(a.join(' ')); cerr(...a); };
+  document.getElementById('canvas').addEventListener('webglcontextlost', () => { j.fin = 'contexte graphique perdu'; note('contexte graphique perdu'); });
+  // Quitter la page ou passer en arrière-plan n'est pas un plantage.
+  addEventListener('pagehide', () => { j.fin = j.fin || 'quittée'; save(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { j.fin = j.fin || 'arrière-plan'; save(); } else if (j.fin === 'arrière-plan') { j.fin = ''; save(); } });
+  setInterval(() => {
+    const r = engine.rtenv, heap = r && r.HEAP8 ? r.HEAP8.length : 0;
+    j.vu = Date.now(); j.moteurMo = Math.round(heap / 1048576); j.maxMo = Math.max(j.maxMo, j.moteurMo);
+    save();
+  }, 5000);
+  save();
+  if (prev && !prev.fin && prev.vu - prev.debut > 20000) {
+    const min = Math.round((prev.vu - prev.debut) / 60000);
+    const rapport = `Arrêt brutal après ${min} min · mémoire du moteur ${prev.moteurMo} Mo (pic ${prev.maxMo} Mo) · mode ${prev.mode} · ${navigator.userAgent}` +
+      (prev.erreurs.length ? '\nDernières erreurs :\n' + prev.erreurs.join('\n') : '\nAucune erreur notée.');
+    const box = document.getElementById('crash');
+    box.style.display = 'block';
+    box.textContent = `Le jeu s'est arrêté brutalement la dernière fois (au bout de ${min} min). `;
+    const b = document.createElement('button');
+    b.textContent = 'Copier le rapport';
+    b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(rapport).then(() => { b.textContent = 'Rapport copié'; }); };
+    const x = document.createElement('button');
+    x.textContent = 'Fermer';
+    x.onclick = () => { box.style.display = 'none'; };
+    box.append(b, x);
+  }
   const rot = document.getElementById('rotate');
   const check = () => rot.classList.toggle('on', innerHeight > innerWidth && innerWidth < 900);
   addEventListener('resize', check); check();
@@ -180,7 +220,7 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
 // Mise à jour : la page connaît sa version, et va voir de temps en temps celle publiée (version.json, jamais en cache).
 // Si elles diffèrent, un bandeau propose de recharger ; le joueur choisit le moment (pas en pleine partie).
 (() => {
-  const VERSION = '96caa2bf0a';
+  const VERSION = 'b7d1a8636c';
   const bar = document.getElementById('maj'), [go, later] = bar.querySelectorAll('button');
   let reg = null, dismissed = null;
   if ('serviceWorker' in navigator)
