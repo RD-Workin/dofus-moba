@@ -1,7 +1,7 @@
 // Hors ligne : la page et le moteur sont gardés sur le téléphone après le premier chargement complet.
-// package_mobile.py remplace 91c1c636a9 (empreinte du contenu) : une nouvelle version vide l'ancien cache.
-const CACHE = 'kolizeum-91c1c636a9';
-const ASSETS = ["./", "manifest.webmanifest", "g0.4224598f.wasm", "g1.7f6ca13a.wasm", "g2.e581d3cb.wasm", "game.audio.position.worklet.js", "game.audio.worklet.js", "game.js", "p0.5bc69af4.wasm", "p1.d15b0324.wasm", "p2.515da512.wasm", "p3.ff1aeb69.wasm", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"];
+// package_mobile.py remplace e526e8f706 (empreinte du contenu) : une nouvelle version vide l'ancien cache.
+const CACHE = 'kolizeum-e526e8f706';
+const ASSETS = ["./", "manifest.webmanifest", "g0.4224598f.wasm", "g1.7f6ca13a.wasm", "g2.e581d3cb.wasm", "game.audio.position.worklet.js", "game.audio.worklet.js", "game.js", "p0.ff6ef5eb.wasm", "p1.a39bbcce.wasm", "p2.d26a89f3.wasm", "p3.05aaaf72.wasm", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"];
 
 const HASHED = f => /^[gp]\d+\.[0-9a-f]{8}\.wasm$/.test(f);
 
