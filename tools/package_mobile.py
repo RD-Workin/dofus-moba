@@ -72,12 +72,17 @@ head = f'''<!doctype html>
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-192.png">
 '''
-reg = '''<div id="maj" hidden><span>Nouvelle version disponible</span><button type="button">Mettre à jour</button><button type="button" aria-label="Plus tard">✕</button></div>
+label = re.sub(r'[^\w .:-]', '', os.environ.get('APP_LABEL', ''))   # « v95 », pris dans le message de publish_github.sh
+reg = '''<div id="ver" hidden></div>
+<div id="maj" hidden><span>Nouvelle version disponible</span><button type="button">Mettre à jour</button><button type="button" aria-label="Plus tard">✕</button></div>
 <style>
 #maj { position: fixed; z-index: 10; top: max(8px, env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 99px; white-space: nowrap;
   background: #3a2f22; border: 1px solid #5a4a36; color: var(--ink); font-size: .9rem; box-shadow: 0 4px 16px #0008; }
-#maj[hidden] { display: none; }
+#maj[hidden], #ver[hidden] { display: none; }
+#ver { position: fixed; z-index: 10; top: max(8px, env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+  padding: 4px 12px; border-radius: 99px; background: #3a2f22cc; color: var(--muted); font-size: .8rem; pointer-events: none;
+  transition: opacity .6s; }
 #maj button { font: inherit; color: var(--ink); background: none; border: 0; padding: 6px 10px; border-radius: 99px; }
 #maj button:first-of-type { background: var(--accent); color: #1d1710; font-weight: 600; }
 </style>
@@ -85,7 +90,13 @@ reg = '''<div id="maj" hidden><span>Nouvelle version disponible</span><button ty
 // Mise à jour : la page connaît sa version, et va voir de temps en temps celle publiée (version.json, jamais en cache).
 // Si elles diffèrent, un bandeau propose de recharger ; le joueur choisit le moment (pas en pleine partie).
 (() => {
-  const VERSION = '__APP_VERSION__';
+  const VERSION = '__APP_VERSION__', LABEL = '__APP_LABEL__';
+  // Numéro de la version installée, visible quelques secondes à chaque lancement.
+  const ver = document.getElementById('ver');
+  if (LABEL) {
+    ver.textContent = 'Dofus MOBA ' + LABEL; ver.hidden = false;
+    setTimeout(() => { ver.style.opacity = 0; setTimeout(() => ver.hidden = true, 700); }, 6000);
+  }
   const bar = document.getElementById('maj'), [go, later] = bar.querySelectorAll('button');
   let reg = null, dismissed = null;
   if ('serviceWorker' in navigator)
@@ -93,8 +104,11 @@ reg = '''<div id="maj" hidden><span>Nouvelle version disponible</span><button ty
   const check = async () => {
     try {
       const r = await fetch('version.json', { cache: 'no-store' });
-      const v = (await r.json()).version;
-      if (v && v !== VERSION && v !== dismissed) bar.hidden = false;
+      const j = await r.json(), v = j.version;
+      if (v && v !== VERSION && v !== dismissed) {
+        bar.firstElementChild.textContent = 'Nouvelle version disponible' + (j.label ? ' : ' + j.label : '');
+        ver.hidden = true; bar.hidden = false;
+      }
     } catch (e) {}   // hors ligne : on réessaiera
   };
   go.onclick = async () => {
@@ -108,7 +122,7 @@ reg = '''<div id="maj" hidden><span>Nouvelle version disponible</span><button ty
   document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
 })();
 </script>
-'''.replace('__APP_VERSION__', version)
+'''.replace('__APP_VERSION__', version).replace('__APP_LABEL__', label)
 page = page.replace("<title>Kolizéum d'essai</title>", f'<title>{NAME}</title>').replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')
 page = page.replace('<canvas id="canvas"', '</head><body>\n<canvas id="canvas"', 1)
 html = head + page + '\n' + reg + '</body></html>\n'
@@ -125,5 +139,5 @@ html = html.replace('<meta charset="utf-8">\n', f'<meta charset="utf-8">\n<meta 
                     '<meta name="referrer" content="no-referrer">\n', 1)
 open(f'{dst}/index.html', 'w', encoding='utf8').write(html)
 open(f'{dst}/.nojekyll', 'w').close()
-json.dump({'version': version}, open(f'{dst}/version.json', 'w'))
+json.dump({'version': version, 'label': label}, open(f'{dst}/version.json', 'w'))
 print('version', version, '-', len(assets), 'files cached')
