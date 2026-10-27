@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr"><head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-83ukA5gTZ/VKubq6xAQh/8ypMWsR+R/3Gul71JQ925Y=' 'sha256-SE/IsjJWkaV5baZyYpyTqiAsxgsQuziEWsxJefY1Mhg=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e9Tj8LoOROQa5PYQPA6YG+ADxuhgAlw7x52i4QiH4B0=' 'sha256-stfYdJS3pPSLSRITYRTeYQ4m+OfcT+EU5/9JAiEb/SQ=' 'sha256-CJbA5BDqxB+vrBTIv4KaDkn4VqcAGblg7OiPgA/4bAk=' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -106,11 +106,11 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
   let vp = document.querySelector('meta[name="viewport"]');
   if (!vp) { vp = document.createElement('meta'); vp.name = 'viewport'; document.head.appendChild(vp); }
   vp.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
-  const WASM_PARTS = ["g0.4224598f.wasm", "g1.7f6ca13a.wasm", "g2.e581d3cb.wasm"];
-  const WASM_SIZE = 28679693;
-  const PCK_SIZE = 42256208;
-  const PCK_PARTS = ["p0.3d5ca431.wasm", "p1.814c7a1f.wasm", "p2.f59f5fff.wasm", "p3.8f760069.wasm"];
-  const DL_SIZE = 46058966;
+  const WASM_PARTS = ["g0.efa259e3.wasm", "g1.5a52089d.wasm", "g2.8de403ab.wasm"];
+  const WASM_SIZE = 28680646;
+  const PCK_SIZE = 42256896;
+  const PCK_PARTS = ["p0.7276bbf8.wasm", "p1.d15b0324.wasm", "p2.515da512.wasm", "p3.db3e4920.wasm"];
+  const DL_SIZE = 46060114;
   const realFetch = window.fetch.bind(window);
   const fill = document.getElementById('fill'), msg = document.getElementById('msg');
   const mo = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace('.', ',');
@@ -206,6 +206,7 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
   addEventListener('resize', check); check();
 })();
 </script>
+
 <div id="ver" hidden></div>
 <div id="maj" hidden><span>Nouvelle version disponible</span><button type="button">Mettre à jour</button><button type="button" aria-label="Plus tard">✕</button></div>
 <style>
@@ -223,7 +224,7 @@ body { background: var(--bg); color: var(--ink); margin: 0; overflow: hidden; fo
 // Mise à jour : la page connaît sa version, et va voir de temps en temps celle publiée (version.json, jamais en cache).
 // Si elles diffèrent, un bandeau propose de recharger ; le joueur choisit le moment (pas en pleine partie).
 (() => {
-  const VERSION = '4d12d393f6', LABEL = 'v95';
+  const VERSION = 'bc4a22c04b', LABEL = 'v96';
   // Numéro de la version installée, visible quelques secondes à chaque lancement.
   const ver = document.getElementById('ver');
   if (LABEL) {
