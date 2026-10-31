@@ -48,6 +48,8 @@ h = hashlib.sha256()
 for f in files:
     h.update(open(os.path.join(dst, f), 'rb').read())
 h.update(page.encode())
+h.update(open(__file__, 'rb').read())   # une modification de ce script (et donc de la page) est aussi une nouvelle version
+h.update(open(os.path.join(os.path.dirname(__file__), 'sw_template.js'), 'rb').read())
 version = h.hexdigest()[:10]
 assets = ['./', 'manifest.webmanifest'] + files + icons
 sw = open(os.path.join(os.path.dirname(__file__), 'sw_template.js'), encoding='utf8').read()
@@ -70,11 +72,57 @@ head = f'''<!doctype html>
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-192.png">
 '''
-reg = '''<script>
-// À chaque lancement : on demande tout de suite s'il existe une nouvelle version (sinon iOS peut attendre longtemps).
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
+label = re.sub(r'[^\w .:-]', '', os.environ.get('APP_LABEL', ''))   # « v95 », pris dans le message de publish_github.sh
+reg = '''<div id="ver" hidden></div>
+<div id="maj" hidden><span>Nouvelle version disponible</span><button type="button">Mettre à jour</button><button type="button" aria-label="Plus tard">✕</button></div>
+<style>
+#maj { position: fixed; z-index: 10; top: max(8px, env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 99px; white-space: nowrap;
+  background: #3a2f22; border: 1px solid #5a4a36; color: var(--ink); font-size: .9rem; box-shadow: 0 4px 16px #0008; }
+#maj[hidden], #ver[hidden] { display: none; }
+#ver { position: fixed; z-index: 10; top: max(8px, env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+  padding: 4px 12px; border-radius: 99px; background: #3a2f22cc; color: var(--muted); font-size: .8rem; pointer-events: none;
+  transition: opacity .6s; }
+#maj button { font: inherit; color: var(--ink); background: none; border: 0; padding: 6px 10px; border-radius: 99px; }
+#maj button:first-of-type { background: var(--accent); color: #1d1710; font-weight: 600; }
+</style>
+<script>
+// Mise à jour : la page connaît sa version, et va voir de temps en temps celle publiée (version.json, jamais en cache).
+// Si elles diffèrent, un bandeau propose de recharger ; le joueur choisit le moment (pas en pleine partie).
+(() => {
+  const VERSION = '__APP_VERSION__', LABEL = '__APP_LABEL__';
+  // Numéro de la version installée, visible quelques secondes à chaque lancement.
+  const ver = document.getElementById('ver');
+  if (LABEL) {
+    ver.textContent = 'Dofus MOBA ' + LABEL; ver.hidden = false;
+    setTimeout(() => { ver.style.opacity = 0; setTimeout(() => ver.hidden = true, 700); }, 6000);
+  }
+  const bar = document.getElementById('maj'), [go, later] = bar.querySelectorAll('button');
+  let reg = null, dismissed = null;
+  if ('serviceWorker' in navigator)
+    navigator.serviceWorker.register('sw.js').then(r => { reg = r; r.update(); }).catch(() => {});
+  const check = async () => {
+    try {
+      const r = await fetch('version.json', { cache: 'no-store' });
+      const j = await r.json(), v = j.version;
+      if (v && v !== VERSION && v !== dismissed) {
+        bar.firstElementChild.textContent = 'Nouvelle version disponible' + (j.label ? ' : ' + j.label : '');
+        ver.hidden = true; bar.hidden = false;
+      }
+    } catch (e) {}   // hors ligne : on réessaiera
+  };
+  go.onclick = async () => {
+    go.textContent = 'Mise à jour…';
+    try { if (reg) await reg.update(); } catch (e) {}
+    location.reload();
+  };
+  later.onclick = () => { bar.hidden = true; fetch('version.json', { cache: 'no-store' }).then(r => r.json()).then(j => dismissed = j.version).catch(() => {}); };
+  setTimeout(check, 5000);
+  setInterval(check, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+})();
 </script>
-'''
+'''.replace('__APP_VERSION__', version).replace('__APP_LABEL__', label)
 page = page.replace("<title>Kolizéum d'essai</title>", f'<title>{NAME}</title>').replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')
 page = page.replace('<canvas id="canvas"', '</head><body>\n<canvas id="canvas"', 1)
 html = head + page + '\n' + reg + '</body></html>\n'
@@ -91,4 +139,5 @@ html = html.replace('<meta charset="utf-8">\n', f'<meta charset="utf-8">\n<meta 
                     '<meta name="referrer" content="no-referrer">\n', 1)
 open(f'{dst}/index.html', 'w', encoding='utf8').write(html)
 open(f'{dst}/.nojekyll', 'w').close()
+json.dump({'version': version, 'label': label}, open(f'{dst}/version.json', 'w'))
 print('version', version, '-', len(assets), 'files cached')
